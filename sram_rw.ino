@@ -1,18 +1,18 @@
 const byte DATA_MASK = 0b11111111; // PORTB
 
-const byte ADDR_0_4_MASK = 0b00011111; // PORTD
+const byte ADDR_0_3_MASK = 0b00001111; // PORTD
 const byte CS_MASK = 0b10000000; // PORTD
 const byte WE_MASK = 0b01000000; // PORTD
 
-const byte ADDR_5_7_MASK = 0b11100000; // PORTF
+const byte ADDR_4_7_MASK = 0b11110000; // PORTF
 const byte ADDR_8_9_MASK = 0b00000011; // PORTF
-const byte ADDR_5_9_MASK = ADDR_5_7_MASK | ADDR_8_9_MASK;
+const byte ADDR_4_9_MASK = ADDR_4_7_MASK | ADDR_8_9_MASK;
 
 void write_address(uint16_t addr) {
   const byte low = addr & 0xFF;
   const byte high = addr >> 8;
-  PORTD = (PORTD & ~ADDR_0_4_MASK) | (low & ADDR_0_4_MASK);
-  PORTF = (PORTF & ~ADDR_5_9_MASK) | (low & ADDR_5_7_MASK) | (high & ADDR_8_9_MASK);
+  PORTD = (PORTD & ~ADDR_0_3_MASK) | (low & ADDR_0_3_MASK);
+  PORTF = (PORTF & ~ADDR_4_9_MASK) | (low & ADDR_4_7_MASK) | (high & ADDR_8_9_MASK);
 }
 
 void setup() {
@@ -24,8 +24,8 @@ void setup() {
 
   // Assign output pins
   DDRB = DATA_MASK; //DDRB |= DATA_MASK;
-  DDRD |= ADDR_0_4_MASK | WE_MASK | CS_MASK;
-  DDRF |= ADDR_5_9_MASK;
+  DDRD |= ADDR_0_3_MASK | WE_MASK | CS_MASK;
+  DDRF |= ADDR_4_9_MASK;
 }
 
 void memwrite(uint16_t addr, byte data) {
