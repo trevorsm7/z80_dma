@@ -30,39 +30,35 @@ void setup() {
 
 void memwrite(uint16_t addr, byte data) {
   // assign data pins as output
-  DDRB = DATA_MASK; //DDRB |= DATA_MASK;
+  DDRB = DATA_MASK;
+
+  write_address(addr);
+
+  // clear (enable) chip select and write enable
+  PORTD &= ~CS_MASK;
+  PORTD &= ~WE_MASK; //__asm__("cbi ?,?");
+
+  PORTB = data;
+
+  // set (disable) write enable and chip select
+  PORTD |= WE_MASK; //__asm__("sbi ?,?");
+  PORTD |= CS_MASK;
+}
+
+byte memread(uint16_t addr) {
+  // assign data pins as input
+  PORTB = (byte)~DATA_MASK; //< disables pull-ups in input mode
+  DDRB = (byte)~DATA_MASK;
 
   write_address(addr);
 
   // clear (enable) chip select
   PORTD &= ~CS_MASK;
 
-  // clear (enable) write enable
-  PORTD &= ~WE_MASK; //__asm__("cbi ?,?\n\t");
-
-  PORTB = data; //PORTB = (PORTB & ~DATA_MASK) | (data & DATA_MASK);
-  // TODO need a nop?
-
-  // disable write enable
-  PORTD |= WE_MASK; //__asm__("sbi ?,?\n\t");
-
-  // set (disable) chip select
-  PORTD |= CS_MASK;
-}
-
-byte memread(uint16_t addr) {
-  // assign data pins as input
-  PORTB = 0;//~DATA_MASK; //PORTB &= ~DATA_MASK; //< disables pull-ups in input mode
-  DDRB = 0;//~DATA_MASK; //DDRB &= ~DATA_MASK;
-
-  write_address(addr);
-
-  // clear (enable) chip select and wait 2 cycles (>70 ns)
-  PORTD &= ~CS_MASK;
-  __asm__("nop\n\t");
-  __asm__("nop\n\t");
-
-  const byte data = PINB;// & DATA_MASK;
+  // wait 2 cycles (need >70 ns after chip select), then sample data
+  __asm__("nop");
+  __asm__("nop");
+  const byte data = PINB;
 
   // set (disable) chip select
   PORTD |= CS_MASK;
