@@ -34,7 +34,7 @@ void set_data_dir_out(const bool dir_out) {
 
 void set_bus_dir_out(const bool dir_out) {
   if (dir_out) {
-    set_data_dir_out(true);
+    //set_data_dir_out(true);
     // Set address and WE/CS to output
     DDRD |= ADDR_0_3_MASK | WE_MASK | CS_MASK;
     DDRF |= ADDR_4_9_MASK;
@@ -57,7 +57,7 @@ void set_reset(const bool enable) {
 }
 
 bool read_halt() {
-  return PINE & HALT_MASK;
+  return !(PINE & HALT_MASK);
 }
 
 void set_write_enable(const bool enable) {
@@ -110,17 +110,17 @@ void setup() {
   while (!Serial) {}
 
   // Hold Z80 reset low
-  set_reset(true);
   DDRD |= RESET_MASK;
+  set_reset(true);
 
   // Enable bus output
+  set_bus_dir_out(true);
   set_chip_select(false);
   set_write_enable(false);
-  set_bus_dir_out(true);
 
   // Set halt to active low input with pullup
-  PORTD |= HALT_MASK;
   DDRE &= ~HALT_MASK;
+  PORTD |= HALT_MASK;
 
   enable_clock(true);
 }
@@ -137,9 +137,54 @@ byte memread(uint16_t addr) {
   return read_data();
 }
 
+const uint16_t RESULT_ADDR = 256;
+const byte TEST_CODE[] PROGMEM = {
+  0x3E, // LD A, 5
+  5,
+  0xC6, // ADD A, 8
+  8,
+  0x32, // LD (RESULT), A
+  RESULT_ADDR & 0xFF,
+  RESULT_ADDR >> 8,
+  0x76, // HALT
+};
+
 void loop() {
   const int input = Serial.read();
-  if (input == 'w') {
+  if (input == 'z') {
+    Serial.print("Programming ");
+    Serial.print(sizeof(TEST_CODE));
+    Serial.println(" bytes...");
+    set_reset(true);
+    set_bus_dir_out(true);
+    for (uint16_t addr = 0; addr < sizeof(TEST_CODE); ++addr) {
+      memwrite(addr, pgm_read_byte(TEST_CODE + addr));
+    }
+    for (uint16_t addr = 0; addr < sizeof(TEST_CODE); ++addr) {
+      const byte data = memread(addr);
+      const byte expected = pgm_read_byte(TEST_CODE + addr);
+      if (data != expected) {
+        Serial.print("Expected ");
+        Serial.print(expected);
+        Serial.print(" at ");
+        Serial.print(addr);
+        Serial.print(" but read ");
+        Serial.println(data);
+      }
+    }
+
+    Serial.print("Running");
+    set_bus_dir_out(false);
+    set_reset(false);
+    while (!read_halt()) {
+      Serial.print('.');
+    }
+
+    set_reset(true);
+    set_bus_dir_out(true);
+    Serial.print("\nResult: ");
+    Serial.println(memread(RESULT_ADDR));
+  } else if (input == 'w') {
     // Write Serial byte stream to external memory
     for (uint16_t addr = 0; addr < 1024;) {
       const int input = Serial.read();
