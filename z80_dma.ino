@@ -13,7 +13,7 @@ const byte ADDR_8_9_MASK = 0b00000011; // out
 const byte ADDR_4_9_MASK = ADDR_4_7_MASK | ADDR_8_9_MASK;
 
 void enable_clock(const bool enable) {
-  PORTC |= bit(6); //< set PC6 (OC3A) as output
+  DDRC |= bit(6); //< set PC6 (OC3A) as output
   if (enable) {
     TCCR3A = bit(COM3A0); //< toggle OC3A on compare
   } else {
