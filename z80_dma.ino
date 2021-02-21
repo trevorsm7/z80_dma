@@ -293,24 +293,6 @@ void loop() {
       result[i] = dma_read(RESULT_ADDR + i);
     result[13] = 0;
     Serial.println(result);
-  } else if (input == 'w') {
-    // Write Serial byte stream to external memory
-    for (uint16_t addr = 0; addr < 1024;) {
-      const int input = Serial.read();
-      if (input >= 0) {
-        dma_write(addr++, input); //< increment addr
-        if (input == '\n')
-          break;
-      }
-    }
-  } else if (input == 'r') {
-    // Stream external memory to Serial
-    for (uint16_t addr = 0; addr < 1024; ++addr) {
-      const byte output = dma_read(addr);
-      Serial.write(output);
-      if (output == '\n' || output == 0)
-        break;
-    }
   } else if (input == 't') {
     bool fail = false;
     const byte patterns[] = {0xFF, 0xF0, 0x0F, 0xCC, 0x33, 0xAA, 0x55, 0x00};
