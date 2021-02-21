@@ -105,6 +105,55 @@ byte read_data() {
   return data;
 }
 
+void dma_write(uint16_t addr, byte data) {
+  set_data_dir_out(true);
+  write_address(addr);
+  write_data(data);
+}
+
+byte dma_read(uint16_t addr) {
+  set_data_dir_out(false);
+  write_address(addr);
+  return read_data();
+}
+
+void dma_write_progmem_(const uint16_t addr, const byte data[] PROGMEM, const uint16_t size) {
+  set_data_dir_out(true);
+  set_chip_select(true);
+  for (uint16_t i = 0; i < size; ++i) {
+    write_address(addr + i);
+    set_write_enable(true);
+    PORTB = pgm_read_byte(data + i);
+    set_write_enable(false);
+  }
+  set_chip_select(false);
+}
+
+#define dma_write_progmem(addr, data) dma_write_progmem_(addr, data, sizeof(data))
+
+bool dma_verify_progmem_(const uint16_t addr, const byte data[] PROGMEM, const uint16_t size) {
+  set_data_dir_out(false);
+  set_chip_select(true);
+  for (uint16_t i = 0; i < size; ++i) {
+    write_address(addr + i);
+    const byte expected = pgm_read_byte(data + i);
+    const byte read = PINB;
+    if (read != expected) {
+      Serial.print("Data corrupt at ");
+      Serial.print(addr);
+      Serial.print(": expected ");
+      Serial.print(expected);
+      Serial.print(" but read ");
+      Serial.println(read);
+      return false;
+    }
+  }
+  set_chip_select(false);
+  return true;
+}
+
+#define dma_verify_progmem(addr, data) dma_verify_progmem_(addr, data, sizeof(data))
+
 void setup() {
   Serial.begin(9600);
   while (!Serial) {}
@@ -123,18 +172,6 @@ void setup() {
   PORTD |= HALT_MASK;
 
   enable_clock(true);
-}
-
-void memwrite(uint16_t addr, byte data) {
-  set_data_dir_out(true);
-  write_address(addr);
-  write_data(data);
-}
-
-byte memread(uint16_t addr) {
-  set_data_dir_out(false);
-  write_address(addr);
-  return read_data();
 }
 
 const uint16_t DATA_ADDR = 512;
@@ -229,27 +266,16 @@ void loop() {
   const int input = Serial.read();
   if (input == 'z') {
     Serial.print("Programming ");
-    Serial.print(sizeof(TEST_CODE));
+    Serial.print(sizeof(TEST_CODE) + sizeof(TEST_DATA));
     Serial.println(" bytes...");
     set_reset(true);
     set_bus_dir_out(true);
-    for (uint16_t addr = 0; addr < sizeof(TEST_CODE); ++addr) {
-      memwrite(addr, pgm_read_byte(TEST_CODE + addr));
-    }
-    for (uint16_t addr = 0; addr < sizeof(TEST_DATA); ++addr) {
-      memwrite(DATA_ADDR + addr, pgm_read_byte(TEST_DATA + addr));
-    }
-    for (uint16_t addr = 0; addr < sizeof(TEST_CODE); ++addr) {
-      const byte data = memread(addr);
-      const byte expected = pgm_read_byte(TEST_CODE + addr);
-      if (data != expected) {
-        Serial.print("Expected ");
-        Serial.print(expected);
-        Serial.print(" at ");
-        Serial.print(addr);
-        Serial.print(" but read ");
-        Serial.println(data);
-      }
+    dma_write_progmem(0, TEST_CODE);
+    dma_write_progmem(DATA_ADDR, TEST_DATA);
+
+    Serial.println("Verifying...");
+    if (!dma_verify_progmem(0, TEST_CODE) || !dma_verify_progmem(DATA_ADDR, TEST_DATA)) {
+      return;
     }
 
     Serial.print("Running");
@@ -264,7 +290,7 @@ void loop() {
     Serial.print("\nResult: ");
     char result[14];
     for (byte i = 0; i < 13; ++i)
-      result[i] = memread(RESULT_ADDR + i);
+      result[i] = dma_read(RESULT_ADDR + i);
     result[13] = 0;
     Serial.println(result);
   } else if (input == 'w') {
@@ -272,7 +298,7 @@ void loop() {
     for (uint16_t addr = 0; addr < 1024;) {
       const int input = Serial.read();
       if (input >= 0) {
-        memwrite(addr++, input); //< increment addr
+        dma_write(addr++, input); //< increment addr
         if (input == '\n')
           break;
       }
@@ -280,7 +306,7 @@ void loop() {
   } else if (input == 'r') {
     // Stream external memory to Serial
     for (uint16_t addr = 0; addr < 1024; ++addr) {
-      const byte output = memread(addr);
+      const byte output = dma_read(addr);
       Serial.write(output);
       if (output == '\n' || output == 0)
         break;
@@ -290,10 +316,10 @@ void loop() {
     const byte patterns[] = {0xFF, 0xF0, 0x0F, 0xCC, 0x33, 0xAA, 0x55, 0x00};
     for (byte pattern : patterns) {
       for (uint16_t addr = 0; addr < 1024; ++addr) {
-        memwrite(addr, pattern);
+        dma_write(addr, pattern);
       }
       for (uint16_t addr = 0; addr < 1024; ++addr) {
-        const byte data = memread(addr);
+        const byte data = dma_read(addr);
         const byte expected = pattern;
         if (data != expected) {
           Serial.print("FAIL: ");
