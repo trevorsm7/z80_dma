@@ -10,82 +10,86 @@ namespace rot13 {
     [ 3] = 0x21,  // LD HL, DATA_ADDR
     [ 4] = DATA_ADDR & 0xFF,
     [ 5] = DATA_ADDR >> 8,
-    [ 6] = 0x4E,  // LD C, (HL)
-    [ 7] = 0x06,  // LD B, 0
-    [ 8] = 0,     // ^
-    [ 9] = 0x23,  // INC HL
-    [10] = 0x11,  // LD DE, RESULT_ADDR
-    [11] = RESULT_ADDR & 0xFF,
-    [12] = RESULT_ADDR >> 8,
-    [13] = 0xC5,  // PUSH BC
-    [14] = 0xD5,  // PUSH DE
-    [15] = 0xED,  // LDIR (copy BC bytes from HL to DE)
-    [16] = 0xB0,  // ^
-    [17] = 0xE1,  // POP HL (RESULT_ADDR to HL)
-    [18] = 0xC1,  // POP BC
-    [19] = 0x41,  // LD B, C (DJNZ uses B, not BC)
-    [20] = 0x3E,  // LD A, 'z'    : loop
-    [21] = 'z',   // ^
-    [22] = 0xBE,  // CP (HL)
-    [23] = 0x38,  // JR C  (if (HL) > 'z', goto next)
-    [24] = (byte)(48 - 25),
-    [25] = 0x7E,  // LD A, (HL)
-    [26] = 0xFE,  // CP 'n'
-    [27] = 'n',   // ^
-    [28] = 0x30,  // JR NC, goto -= 13  (if (HL) >= 'n')
-    [29] = (byte)(58 - 30),
-    [30] = 0xFE,  // CP 'a'
-    [31] = 'a',   // ^
-    [32] = 0x30,  // JR NC, goto += 13  (if (HL) >= 'a')
-    [33] = (byte)(52 - 34),
-    [34] = 0x3E,  // LD A, 'Z'
-    [35] = 'Z',   // ^
-    [36] = 0xBE,  // CP (HL)
-    [37] = 0x38,  // JR C, goto next  (if (HL) > 'Z')
-    [38] = (byte)(48 - 39),
-    [39] = 0x7E,  // LD A, (HL)
-    [40] = 0xFE,  // CP 'N'
-    [41] = 'N',   // ^
-    [42] = 0x30,  // JR NC, goto -= 13  (if (HL) >= 'N')
-    [43] = (byte)(58 - 44),
-    [44] = 0xFE,  // CP 'A'
-    [45] = 'A',   // ^
-    [46] = 0x30,  // JR NC, goto += 13  (if (HL) >= 'A')
-    [47] = (byte)(52 - 48),
-    [48] = 0x23,  // INC HL   : next
-    [49] = 0x10,  // DJNZ loop
-    [50] = (byte)(20 - 51),
-    [51] = 0x76,  // HALT
-    [52] = 0x7E,  // LD A, (HL)  : += 13
-    [53] = 0xC6,  // ADD A, 13
-    [54] = 13,    // ^
-    [55] = 0x77,  // LD (HL), A
-    [56] = 0x18,  // JR to next
-    [57] = (byte)(48 - 58),
-    [58] = 0x7E,  // LD A, (HL)  : -= 13
-    [59] = 0xD6,  // SUB A, 13
-    [60] = 13,    // ^
-    [61] = 0x77,  // LD (HL), A
-    [62] = 0x18,  // JR to next
-    [63] = (byte)(48 - 64),
+    [ 6] = 0x11,  // LD DE, RESULT_ADDR
+    [ 7] = RESULT_ADDR & 0xFF,
+    [ 8] = RESULT_ADDR >> 8,
+    [ 9] = 0x3E,  // LD A, 0
+    [10] = 0,     // ^
+    [11] = 0x01,  // LD BC, 0
+    [12] = 0,     // ^
+    [13] = 0,     // ^
+
+    // Count bytes in string at DATA_ADDR
+    [14] = 0xE5,  // PUSH HL (DATA_ADDR)
+    [15] = 0xED,  // CPIR (loop until A==(HL++))
+    [16] = 0xB1,  // ^
+    [17] = 0xE1,  // POP HL (DATA_ADDR)
+    [18] = 0x91,  // SUB C
+    [19] = 0x4F,  // LD C, A (BC = negated count from CPIR)
+    [20] = 0x06,  // LD B, 0
+    [21] = 0x00,  // ^
+
+    // Copy string from DATA_ADDR to RESULT_ADDR
+    [22] = 0xD5,  // PUSH DE (RESULT_ADDR)
+    [23] = 0xED,  // LDIR ((HL++) -> (DE++), BC--)
+    [24] = 0xB0,  // ^
+    [25] = 0xE1,  // POP HL (RESULT_ADDR)
+    [26] = 0x47,  // LD B, A (B = negated count from CPIR)
+
+    // ROT13 encode/decode character at HL
+    [27] = 0x3E,  // LD A, 'z'
+    [28] = 'z',   // ^
+    [29] = 0xBE,  // CP (HL)
+    [30] = 0x38,  // JR C  (if (HL) > 'z', goto next)
+    [31] = (byte)(55 - 32),
+    [32] = 0x7E,  // LD A, (HL)
+    [33] = 0xFE,  // CP 'n'
+    [34] = 'n',   // ^
+    [35] = 0x30,  // JR NC  (if (HL) >= 'n', goto -= 13)
+    [36] = (byte)(65 - 37),
+    [37] = 0xFE,  // CP 'a'
+    [38] = 'a',   // ^
+    [39] = 0x30,  // JR NC  (if (HL) >= 'a', goto += 13)
+    [40] = (byte)(59 - 41),
+    [41] = 0x3E,  // LD A, 'Z'
+    [42] = 'Z',   // ^
+    [43] = 0xBE,  // CP (HL)
+    [44] = 0x38,  // JR C  (if (HL) > 'Z', goto next)
+    [45] = (byte)(55 - 46),
+    [46] = 0x7E,  // LD A, (HL)
+    [47] = 0xFE,  // CP 'N'
+    [48] = 'N',   // ^
+    [49] = 0x30,  // JR NC  (if (HL) >= 'N', goto -= 13)
+    [50] = (byte)(65 - 51),
+    [51] = 0xFE,  // CP 'A'
+    [52] = 'A',   // ^
+    [53] = 0x30,  // JR NC  (if (HL) >= 'A', goto += 13)
+    [54] = (byte)(59 - 55),
+
+    // Ready next character
+    [55] = 0x23,  // INC HL
+    [56] = 0x10,  // DJNZ loop
+    [57] = (byte)(27 - 58),
+    [58] = 0x76,  // HALT
+
+    // Add 13 to character
+    [59] = 0x7E,  // LD A, (HL)
+    [60] = 0xC6,  // ADD A, 13
+    [61] = 13,    // ^
+    [62] = 0x77,  // LD (HL), A
+    [63] = 0x18,  // JR to next
+    [64] = (byte)(55 - 65),
+
+    // Sub 13 from character
+    [65] = 0x7E,  // LD A, (HL)
+    [66] = 0xD6,  // SUB A, 13
+    [67] = 13,    // ^
+    [68] = 0x77,  // LD (HL), A
+    [69] = 0x18,  // JR to next
+    [70] = (byte)(55 - 71),
   };
   
-  const byte TEST_DATA[] PROGMEM = {
-    [ 0] = 13,    // length of string
-    [ 1] = 'U',   // super secret cypher encoding
-    [ 2] = 'r',
-    [ 3] = 'y',
-    [ 4] = 'y',
-    [ 5] = 'b',
-    [ 6] = ',',
-    [ 7] = ' ',
-    [ 8] = 'J',
-    [ 9] = 'b',
-    [10] = 'e',
-    [11] = 'y',
-    [12] = 'q',
-    [13] = '!',
-  };
+  const byte TEST_DATA[] PROGMEM = "Uryyb, Jbeyq!";
 
   void run() {
     Serial.print("Running");
@@ -98,11 +102,13 @@ namespace rot13 {
     set_reset(true);
     set_bus_dir_out(true);
     Serial.print("\nResult: ");
-    byte len = dma_read_byte(DATA_ADDR);
-    char result[len + 1];
-    for (byte i = 0; i < len; ++i)
-      result[i] = dma_read_byte(RESULT_ADDR + i);
-    result[len] = 0;
+    char result[128];
+    for (byte i = 0; i < 128; ++i) {
+      byte read = dma_read_byte(RESULT_ADDR + i);
+      result[i] = read;
+      if (read == 0)
+        break;
+    }
     Serial.println(result);
   }
 
@@ -127,10 +133,10 @@ namespace rot13 {
   void input() {
     char* message = strtok(nullptr, "");
     if (message != nullptr) {
-      byte len = strlen(message);
-      dma_write_byte(DATA_ADDR, len);
-      for (byte i = 0; i < len; ++i) {
-        dma_write_byte(DATA_ADDR + 1 + i, message[i]);
+      for (byte i = 0; i < 128; ++i) {
+        dma_write_byte(DATA_ADDR + i, message[i]);
+        if (message[i] == 0)
+          break;
       }
       run();
     } else {

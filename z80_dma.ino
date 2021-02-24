@@ -66,9 +66,9 @@ bool read_halt() {
 
 void set_write_enable(const bool enable) {
   if (enable) {
-    PORTD &= ~WE_MASK; //__asm__("cbi ?,?");
+    PORTD &= ~WE_MASK;
   } else {
-    PORTD |= WE_MASK; //__asm__("sbi ?,?");
+    PORTD |= WE_MASK;
   }
 }
 
