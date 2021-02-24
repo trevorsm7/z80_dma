@@ -103,12 +103,7 @@ namespace rot13 {
     set_bus_dir_out(true);
     Serial.print("\nResult: ");
     char result[128];
-    for (byte i = 0; i < 128; ++i) {
-      byte read = dma_read_byte(RESULT_ADDR + i);
-      result[i] = read;
-      if (read == 0)
-        break;
-    }
+    dma_read_string(RESULT_ADDR, result, sizeof(result));
     Serial.println(result);
   }
 
@@ -133,11 +128,7 @@ namespace rot13 {
   void input() {
     char* message = strtok(nullptr, "");
     if (message != nullptr) {
-      for (byte i = 0; i < 128; ++i) {
-        dma_write_byte(DATA_ADDR + i, message[i]);
-        if (message[i] == 0)
-          break;
-      }
+      dma_write_string(DATA_ADDR, message, 128);
       run();
     } else {
       Serial.println("Expected message");

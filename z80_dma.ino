@@ -121,6 +121,24 @@ byte dma_read_byte(uint16_t addr) {
   return read_data();
 }
 
+void dma_write_string(uint16_t addr, const char* string, byte max_len) {
+  for (byte i = 0; i < max_len; ++i) {
+    const byte data = string[i];
+    dma_write_byte(addr + i, data);
+    if (data == 0)
+      break;
+  }
+}
+
+void dma_read_string(uint16_t addr, char* string, byte max_len) {
+  for (byte i = 0; i < max_len; ++i) {
+    const byte data = dma_read_byte(addr + i);
+    string[i] = data;
+    if (data == 0)
+      break;
+  }
+}
+
 void dma_write_progmem_(const uint16_t addr, const byte data[] PROGMEM, const uint16_t size) {
   set_data_dir_out(true);
   set_chip_select(true);
