@@ -105,13 +105,13 @@ byte read_data() {
   return data;
 }
 
-void dma_write(uint16_t addr, byte data) {
+void dma_write_byte(uint16_t addr, byte data) {
   set_data_dir_out(true);
   write_address(addr);
   write_data(data);
 }
 
-byte dma_read(uint16_t addr) {
+byte dma_read_byte(uint16_t addr) {
   set_data_dir_out(false);
   write_address(addr);
   return read_data();
@@ -290,7 +290,7 @@ void loop() {
     Serial.print("\nResult: ");
     char result[14];
     for (byte i = 0; i < 13; ++i)
-      result[i] = dma_read(RESULT_ADDR + i);
+      result[i] = dma_read_byte(RESULT_ADDR + i);
     result[13] = 0;
     Serial.println(result);
   } else if (input == 't') {
@@ -298,10 +298,10 @@ void loop() {
     const byte patterns[] = {0xFF, 0xF0, 0x0F, 0xCC, 0x33, 0xAA, 0x55, 0x00};
     for (byte pattern : patterns) {
       for (uint16_t addr = 0; addr < 1024; ++addr) {
-        dma_write(addr, pattern);
+        dma_write_byte(addr, pattern);
       }
       for (uint16_t addr = 0; addr < 1024; ++addr) {
-        const byte data = dma_read(addr);
+        const byte data = dma_read_byte(addr);
         const byte expected = pattern;
         if (data != expected) {
           Serial.print("FAIL: ");
