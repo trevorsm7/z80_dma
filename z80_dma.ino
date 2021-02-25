@@ -109,30 +109,34 @@ byte read_data() {
   return data;
 }
 
-void dma_write_byte(uint16_t addr, byte data) {
+void dma_write_byte(const uint16_t addr, const byte data) {
   set_data_dir_out(true);
   write_address(addr);
   write_data(data);
 }
 
-byte dma_read_byte(uint16_t addr) {
+byte dma_read_byte(const uint16_t addr) {
   set_data_dir_out(false);
   write_address(addr);
   return read_data();
 }
 
-void dma_write_string(uint16_t addr, const char* string, byte max_len) {
+void dma_write_string(const uint16_t addr, const char* string, const byte max_len) {
+  set_data_dir_out(true);
   for (byte i = 0; i < max_len; ++i) {
     const byte data = string[i];
-    dma_write_byte(addr + i, data);
+    write_address(addr + i);
+    write_data(data);
     if (data == 0)
       break;
   }
 }
 
-void dma_read_string(uint16_t addr, char* string, byte max_len) {
+void dma_read_string(const uint16_t addr, char* string, const byte max_len) {
+  set_data_dir_out(false);
   for (byte i = 0; i < max_len; ++i) {
-    const byte data = dma_read_byte(addr + i);
+    write_address(addr + i);
+    const byte data = read_data();
     string[i] = data;
     if (data == 0)
       break;
