@@ -2,6 +2,10 @@
 
 #include <string.h>
 
+#if !defined(ARDUINO_AVR_MICRO)
+#error This sketch is intended for Arduino Micro
+#endif
+
 // PORTD
 const byte ADDR_0_3_MASK = 0b00001111; // out
 const byte RESET_MASK = bit(4); // out, active low
@@ -16,18 +20,21 @@ const byte ADDR_4_7_MASK = 0b11110000; // out
 const byte ADDR_8_9_MASK = 0b00000011; // out
 const byte ADDR_4_9_MASK = ADDR_4_7_MASK | ADDR_8_9_MASK;
 
-void enable_clock(const bool enable) {
+inline void configure_clock() {
   DDRC |= bit(6); //< set PC6 (OC3A) as output
+  TCCR3B = bit(CS30) | bit(WGM32); //< no prescaling, CTC
+  OCR3A = 1; // 4 MHz
+}
+
+inline void enable_clock(bool enable) {
   if (enable) {
     TCCR3A = bit(COM3A0); //< toggle OC3A on compare
   } else {
     TCCR3A = bit(COM3A1); //< clear OC3A on compare (hold clock pin low)
   }
-  TCCR3B = bit(CS30) | bit(WGM32); //< no prescaling, CTC
-  OCR3A = 1; // 4 MHz
 }
 
-void set_data_dir_out(const bool dir_out) {
+inline void set_data_dir_out(bool dir_out) {
   if (dir_out) {
     DDRB = 0xFF;
   } else {
@@ -36,23 +43,24 @@ void set_data_dir_out(const bool dir_out) {
   }
 }
 
-void set_bus_dir_out(const bool dir_out) {
+inline void set_bus_dir_out(bool dir_out) {
   if (dir_out) {
     //set_data_dir_out(true);
     // Set address and WE/CS to output
-    DDRD |= ADDR_0_3_MASK | WE_MASK | CS_MASK;
-    DDRF |= ADDR_4_9_MASK;
+    DDRD = ADDR_0_3_MASK | RESET_MASK | WE_MASK | CS_MASK;
+    DDRF = ADDR_4_9_MASK;
   } else {
     set_data_dir_out(false);
     // Set address to high-Z and WE/CS to pull-up
-    DDRD &= ~(ADDR_0_3_MASK | WE_MASK | CS_MASK);
     PORTD = (PORTD & ~ADDR_0_3_MASK) | WE_MASK | CS_MASK;
-    DDRF &= ~ADDR_4_9_MASK;
-    PORTF &= ~ADDR_4_9_MASK;
+    DDRD = RESET_MASK;
+    PORTF = 0;
+    DDRF = 0;
   }
 }
 
-void set_reset(const bool enable) {
+inline void set_reset(bool enable) {
+  DDRD |= RESET_MASK;
   if (enable) {
     PORTD &= ~RESET_MASK;
   } else {
@@ -60,11 +68,17 @@ void set_reset(const bool enable) {
   }
 }
 
-bool read_halt() {
+inline void configure_halt() {
+  // Set halt to active low input with pullup
+  DDRE &= ~HALT_MASK;
+  PORTE |= HALT_MASK;
+}
+
+inline bool read_halt() {
   return !(PINE & HALT_MASK);
 }
 
-void set_write_enable(const bool enable) {
+inline void set_write_enable(bool enable) {
   if (enable) {
     PORTD &= ~WE_MASK;
   } else {
@@ -72,7 +86,7 @@ void set_write_enable(const bool enable) {
   }
 }
 
-void set_chip_select(const bool enable) {
+inline void set_chip_select(bool enable) {
   if (enable) {
     PORTD &= ~CS_MASK;
   } else {
@@ -80,14 +94,14 @@ void set_chip_select(const bool enable) {
   }
 }
 
-void write_address(const uint16_t addr) {
+inline void write_address(uint16_t addr) {
   const byte low = addr & 0xFF;
   const byte high = addr >> 8;
   PORTD = (PORTD & ~ADDR_0_3_MASK) | (low & ADDR_0_3_MASK);
-  PORTF = (PORTF & ~ADDR_4_9_MASK) | (low & ADDR_4_7_MASK) | (high & ADDR_8_9_MASK);
+  PORTF = (low & ADDR_4_7_MASK) | high;
 }
 
-void write_data(const byte data) {
+inline void write_data(byte data) {
   set_chip_select(true);
   set_write_enable(true);
 
@@ -97,7 +111,7 @@ void write_data(const byte data) {
   set_chip_select(false);
 }
 
-byte read_data() {
+inline byte read_data() {
   set_chip_select(true);
 
   // wait 2 cycles (need >70 ns after chip select), then sample data
@@ -109,19 +123,19 @@ byte read_data() {
   return data;
 }
 
-void dma_write_byte(const uint16_t addr, const byte data) {
+void dma_write_byte(uint16_t addr, byte data) {
   set_data_dir_out(true);
   write_address(addr);
   write_data(data);
 }
 
-byte dma_read_byte(const uint16_t addr) {
+byte dma_read_byte(uint16_t addr) {
   set_data_dir_out(false);
   write_address(addr);
   return read_data();
 }
 
-void dma_write_string(const uint16_t addr, const char* string, const byte max_len) {
+void dma_write_string(uint16_t addr, const char* string, byte max_len) {
   set_data_dir_out(true);
   for (byte i = 0; i < max_len; ++i) {
     const byte data = string[i];
@@ -132,7 +146,7 @@ void dma_write_string(const uint16_t addr, const char* string, const byte max_le
   }
 }
 
-void dma_read_string(const uint16_t addr, char* string, const byte max_len) {
+void dma_read_string(uint16_t addr, char* string, byte max_len) {
   set_data_dir_out(false);
   for (byte i = 0; i < max_len; ++i) {
     write_address(addr + i);
@@ -143,7 +157,7 @@ void dma_read_string(const uint16_t addr, char* string, const byte max_len) {
   }
 }
 
-void dma_write_progmem_(const uint16_t addr, const byte data[] PROGMEM, const uint16_t size) {
+void dma_write_progmem_(uint16_t addr, const byte data[] PROGMEM, uint16_t size) {
   set_data_dir_out(true);
   set_chip_select(true);
   for (uint16_t i = 0; i < size; ++i) {
@@ -157,7 +171,7 @@ void dma_write_progmem_(const uint16_t addr, const byte data[] PROGMEM, const ui
 
 #define dma_write_progmem(addr, data) dma_write_progmem_(addr, data, sizeof(data))
 
-bool dma_verify_progmem_(const uint16_t addr, const byte data[] PROGMEM, const uint16_t size) {
+bool dma_verify_progmem_(uint16_t addr, const byte data[] PROGMEM, uint16_t size) {
   set_data_dir_out(false);
   set_chip_select(true);
   for (uint16_t i = 0; i < size; ++i) {
@@ -181,23 +195,21 @@ bool dma_verify_progmem_(const uint16_t addr, const byte data[] PROGMEM, const u
 #define dma_verify_progmem(addr, data) dma_verify_progmem_(addr, data, sizeof(data))
 
 void setup() {
-  Serial.begin(9600);
-  while (!Serial) {}
-
   // Hold Z80 reset low
-  DDRD |= RESET_MASK;
   set_reset(true);
+
+  configure_clock();
+  configure_halt();
 
   // Enable bus output
   set_bus_dir_out(true);
   set_chip_select(false);
   set_write_enable(false);
 
-  // Set halt to active low input with pullup
-  DDRE &= ~HALT_MASK;
-  PORTD |= HALT_MASK;
-
   enable_clock(true);
+
+  Serial.begin(9600);
+  while (!Serial) {}
 }
 
 void memtest() {
