@@ -124,19 +124,16 @@ inline byte read_data() {
 }
 
 void dma_write_byte(uint16_t addr, byte data) {
-  set_data_dir_out(true);
   write_address(addr);
   write_data(data);
 }
 
 byte dma_read_byte(uint16_t addr) {
-  set_data_dir_out(false);
   write_address(addr);
   return read_data();
 }
 
 void dma_write_string(uint16_t addr, const char* string, byte max_len) {
-  set_data_dir_out(true);
   for (byte i = 0; i < max_len; ++i) {
     const byte data = string[i];
     write_address(addr + i);
@@ -147,7 +144,6 @@ void dma_write_string(uint16_t addr, const char* string, byte max_len) {
 }
 
 void dma_read_string(uint16_t addr, char* string, byte max_len) {
-  set_data_dir_out(false);
   for (byte i = 0; i < max_len; ++i) {
     write_address(addr + i);
     const byte data = read_data();
@@ -158,7 +154,6 @@ void dma_read_string(uint16_t addr, char* string, byte max_len) {
 }
 
 void dma_write_progmem_(uint16_t addr, const byte data[] PROGMEM, uint16_t size) {
-  set_data_dir_out(true);
   set_chip_select(true);
   for (uint16_t i = 0; i < size; ++i) {
     write_address(addr + i);
@@ -172,7 +167,6 @@ void dma_write_progmem_(uint16_t addr, const byte data[] PROGMEM, uint16_t size)
 #define dma_write_progmem(addr, data) dma_write_progmem_(addr, data, sizeof(data))
 
 bool dma_verify_progmem_(uint16_t addr, const byte data[] PROGMEM, uint16_t size) {
-  set_data_dir_out(false);
   set_chip_select(true);
   for (uint16_t i = 0; i < size; ++i) {
     write_address(addr + i);
@@ -216,9 +210,12 @@ void memtest() {
   bool fail = false;
   const byte patterns[] = {0xFF, 0xF0, 0x0F, 0xCC, 0x33, 0xAA, 0x55, 0x00};
   for (byte pattern : patterns) {
+    set_data_dir_out(true);
     for (uint16_t addr = 0; addr < 1024; ++addr) {
       dma_write_byte(addr, pattern);
     }
+
+    set_data_dir_out(false);
     for (uint16_t addr = 0; addr < 1024; ++addr) {
       const byte data = dma_read_byte(addr);
       const byte expected = pattern;

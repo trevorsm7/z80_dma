@@ -101,9 +101,10 @@ namespace rot13 {
 
     set_reset(true);
     set_bus_dir_out(true);
-    Serial.print("\nResult: ");
+    set_data_dir_out(false);
     char result[128];
     dma_read_string(RESULT_ADDR, result, sizeof(result));
+    Serial.print("\nResult: ");
     Serial.println(result);
   }
 
@@ -113,10 +114,12 @@ namespace rot13 {
     Serial.println(" bytes...");
     set_reset(true);
     set_bus_dir_out(true);
+    set_data_dir_out(true);
     dma_write_progmem(0, TEST_CODE);
     dma_write_progmem(DATA_ADDR, TEST_DATA);
 
     Serial.println("Verifying...");
+    set_data_dir_out(false);
     if (!dma_verify_progmem(0, TEST_CODE)
       || !dma_verify_progmem(DATA_ADDR, TEST_DATA)) {
       return;
@@ -128,6 +131,9 @@ namespace rot13 {
   void input() {
     char* message = strtok(nullptr, "");
     if (message != nullptr) {
+      set_reset(true);
+      set_bus_dir_out(true);
+      set_data_dir_out(true);
       dma_write_string(DATA_ADDR, message, 128);
       run();
     } else {
