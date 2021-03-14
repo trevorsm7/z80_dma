@@ -238,6 +238,7 @@ void memtest() {
 void loop() {
   static const Command commands[] = {
     Command { "test", memtest },
+    Command { "add", run_add },
     Command { "rot13", run_rot13 },
   };
 
