@@ -4,18 +4,15 @@ namespace add {
   const uint16_t RESULT_ADDR = 514;
   
   const byte TEST_CODE[] PROGMEM = {
-    [ 0] = 0x3A,  // LD A, (OP2_ADDR)
-    [ 1] = OP2_ADDR & 0xFF,
-    [ 2] = OP2_ADDR >> 8,
-    [ 3] = 0x47,  // LD B, A
-    [ 4] = 0x3A,  // LD A, (OP1_ADDR)
-    [ 5] = OP1_ADDR & 0xFF,
-    [ 6] = OP1_ADDR >> 8,
-    [ 7] = 0x80,  // ADD A, B
-    [ 8] = 0x32,  // LD (RESULT_ADDR), A
-    [ 9] = RESULT_ADDR & 0xFF,
-    [10] = RESULT_ADDR >> 8,
-    [11] = 0x76,  // HALT
+    [0] = 0x21, // LD HL, OP1_ADDR
+    [1] = OP1_ADDR & 0xFF,
+    [2] = OP1_ADDR >> 8,
+    [3] = 0x7E, // LD A, (HL) ; A = OP1
+    [4] = 0x23, // INC HL     ; HL = OP2_ADDR
+    [5] = 0x86, // ADD (HL)   ; A = OP1 + OP2
+    [6] = 0x23, // INC HL     ; HL = RESULT_ADDR
+    [7] = 0x77, // LD (HL), A ; RESULT = OP1 + OP2
+    [8] = 0x76, // HALT
   };
 
   void run(byte op1, byte op2) {
