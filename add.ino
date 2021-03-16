@@ -7,11 +7,11 @@ namespace add {
     [0] = 0x21, // LD HL, OP1_ADDR
     [1] = OP1_ADDR & 0xFF,
     [2] = OP1_ADDR >> 8,
-    [3] = 0x7E, // LD A, (HL) ; A = OP1
+    [3] = 0x7E, // LD A, (HL) ; A = (OP1)
     [4] = 0x23, // INC HL     ; HL = OP2_ADDR
-    [5] = 0x86, // ADD (HL)   ; A = OP1 + OP2
+    [5] = 0x86, // ADD (HL)   ; A = OP1 + (OP2)
     [6] = 0x23, // INC HL     ; HL = RESULT_ADDR
-    [7] = 0x77, // LD (HL), A ; RESULT = OP1 + OP2
+    [7] = 0x77, // LD (HL), A ; (RESULT) = OP1 + OP2
     [8] = 0x76, // HALT
   };
 
