@@ -3,7 +3,7 @@ namespace rot13 {
   const uint16_t RESULT_ADDR = 640;
   const uint16_t STACK_ADDR = 1024; // top of memory
   
-  const byte TEST_CODE[] PROGMEM = {
+  const byte BYTE_CODE[] PROGMEM = {
     [ 0] = 0x31,  // LD SP, STACK_ADDR
     [ 1] = STACK_ADDR & 0xFF,
     [ 2] = STACK_ADDR >> 8,
@@ -89,7 +89,7 @@ namespace rot13 {
     [70] = (byte)(55 - 71),
   };
   
-  const byte TEST_DATA[] PROGMEM = "Uryyb, Jbeyq!";
+  const byte DEFAULT_MESSAGE[] PROGMEM = "Uryyb, Jbeyq!";
 
   void run() {
     Serial.print("Running");
@@ -110,18 +110,18 @@ namespace rot13 {
 
   void program() {
     Serial.print("Programming ");
-    Serial.print(sizeof(TEST_CODE) + sizeof(TEST_DATA));
+    Serial.print(sizeof(BYTE_CODE) + sizeof(DEFAULT_MESSAGE));
     Serial.println(" bytes...");
     set_reset(true);
     set_bus_dir_out(true);
     set_data_dir_out(true);
-    dma_write_progmem(0, TEST_CODE);
-    dma_write_progmem(DATA_ADDR, TEST_DATA);
+    dma_write_progmem(0, BYTE_CODE);
+    dma_write_progmem(DATA_ADDR, DEFAULT_MESSAGE);
 
     Serial.println("Verifying...");
     set_data_dir_out(false);
-    if (!dma_verify_progmem(0, TEST_CODE)
-      || !dma_verify_progmem(DATA_ADDR, TEST_DATA)) {
+    if (!dma_verify_progmem(0, BYTE_CODE)
+      || !dma_verify_progmem(DATA_ADDR, DEFAULT_MESSAGE)) {
       return;
     }
 

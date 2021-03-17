@@ -3,7 +3,7 @@ namespace add {
   const uint16_t OP2_ADDR = 513;
   const uint16_t RESULT_ADDR = 514;
   
-  const byte TEST_CODE[] PROGMEM = {
+  const byte BYTE_CODE[] PROGMEM = {
     [0] = 0x21, // LD HL, OP1_ADDR
     [1] = OP1_ADDR & 0xFF,
     [2] = OP1_ADDR >> 8,
@@ -21,7 +21,7 @@ namespace add {
     set_data_dir_out(true);
 
     Serial.println("Programming...");
-    dma_write_progmem(0, TEST_CODE);
+    dma_write_progmem(0, BYTE_CODE);
     dma_write_byte(OP1_ADDR, op1);
     dma_write_byte(OP2_ADDR, op2);
 
