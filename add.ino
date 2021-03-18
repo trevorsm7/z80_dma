@@ -16,11 +16,11 @@ namespace add {
   };
 
   void run(byte op1, byte op2) {
+    Serial.println("Programming...");
     set_reset(true);
     set_bus_dir_out(true);
     set_data_dir_out(true);
 
-    Serial.println("Programming...");
     dma_write_progmem(0, BYTE_CODE);
     dma_write_byte(OP1_ADDR, op1);
     dma_write_byte(OP2_ADDR, op2);

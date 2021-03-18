@@ -12,17 +12,5 @@ void handle_command_(char* input, const Command commands[], const byte length) {
     }
   }
 
-  Serial.print("Input ");
-  Serial.print(input);
-  Serial.print(" but expected {");
-  bool first = true;
-  for (byte i = 0; i < length; ++i) {
-    if (first) {
-      first = false;
-    } else {
-      Serial.print(", ");
-    }
-    Serial.print(commands[i].command);
-  }
-  Serial.println("}");
+  Serial.println("?");
 }

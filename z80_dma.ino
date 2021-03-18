@@ -235,6 +235,20 @@ void memtest() {
   }
 }
 
+void read_and_echo(char* buffer) {
+  for (;;) {
+    int input = Serial.read();
+    if (input != -1) {
+      Serial.write(input);
+      if (input == '\n') {
+        *buffer = '\0';
+        break;
+      }
+      *buffer++ = input;
+    }
+  }
+}
+
 void loop() {
   static const Command commands[] = {
     Command { "test", memtest },
@@ -242,11 +256,9 @@ void loop() {
     Command { "rot13", run_rot13 },
   };
 
-  String input = Serial.readString();
-  input.trim();
-  if (input.length() > 0) {
-    Serial.println(input);
-    char* token = strtok((char*)input.c_str(), " ");
-    handle_command(token, commands);
-  }
+  char input[128];
+  Serial.write('>');
+  read_and_echo(input);
+  char* token = strtok((char*)input, " ");
+  handle_command(token, commands);
 }

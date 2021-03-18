@@ -91,7 +91,19 @@ namespace rot13 {
   
   const byte DEFAULT_MESSAGE[] PROGMEM = "Uryyb, Jbeyq!";
 
-  void run() {
+  void run(const char* message) {
+    Serial.print("Programming...");
+    set_reset(true);
+    set_bus_dir_out(true);
+    set_data_dir_out(true);
+
+    dma_write_progmem(0, BYTE_CODE);
+    if (message) {
+      dma_write_string(DATA_ADDR, message, 128);
+    } else {
+      dma_write_progmem(DATA_ADDR, DEFAULT_MESSAGE);
+    }
+
     Serial.print("Running");
     set_bus_dir_out(false);
     set_reset(false);
@@ -107,48 +119,9 @@ namespace rot13 {
     Serial.print("\nResult: ");
     Serial.println(result);
   }
-
-  void program() {
-    Serial.print("Programming ");
-    Serial.print(sizeof(BYTE_CODE) + sizeof(DEFAULT_MESSAGE));
-    Serial.println(" bytes...");
-    set_reset(true);
-    set_bus_dir_out(true);
-    set_data_dir_out(true);
-    dma_write_progmem(0, BYTE_CODE);
-    dma_write_progmem(DATA_ADDR, DEFAULT_MESSAGE);
-
-    Serial.println("Verifying...");
-    set_data_dir_out(false);
-    if (!dma_verify_progmem(0, BYTE_CODE)
-      || !dma_verify_progmem(DATA_ADDR, DEFAULT_MESSAGE)) {
-      return;
-    }
-
-    run();
-  }
-
-  void input() {
-    char* message = strtok(nullptr, "");
-    if (message != nullptr) {
-      set_reset(true);
-      set_bus_dir_out(true);
-      set_data_dir_out(true);
-      dma_write_string(DATA_ADDR, message, 128);
-      run();
-    } else {
-      Serial.println("Expected message");
-    }
-  }
 }
 
 void run_rot13() {
-  static const Command commands[] = {
-    Command { "program", rot13::program },
-    Command { "run", rot13::run },
-    Command { "input", rot13::input },
-  };
-
-  char* token = strtok(nullptr, " ");
-  handle_command(token, commands);
+  char* message = strtok(nullptr, "");
+  rot13::run(message);
 }
